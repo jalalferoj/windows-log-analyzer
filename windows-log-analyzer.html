@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Log Security Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #1f2937;
+            --bg-secondary: #374151;
+            --bg-card: #4b5563;
+            --text-primary: #ffffff;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #a78bfa;
+            --border: #6b7280;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #111827 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--accent-primary);
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent-secondary);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent-secondary);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .analysis-section {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .critical { color: var(--danger); }
+        .high { color: #f97316; }
+        .medium { color: var(--warning); }
+        .low { color: var(--success); }
+
+        .results-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .vulnerability-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .vulnerability-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .vulnerability-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .severity-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .severity-critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .severity-high {
+            background: rgba(249, 115, 22, 0.2);
+            color: #f97316;
+        }
+
+        .severity-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .severity-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .vulnerability-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .remediation {
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 6px;
+            padding: 1rem;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .remediation-title {
+            font-weight: 600;
+            color: var(--accent-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 3px solid var(--bg-card);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .export-section {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Windows Log Security Analyzer</h1>
+            <p>Advanced threat detection and security analysis for Windows Event Logs</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3>Upload CSV Log Files</h3>
+                <p>Drag and drop your Windows Event Log CSV files here, or click to browse</p>
+                <input type="file" id="fileInput" class="file-input" multiple accept=".csv">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose Files
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing security logs...</p>
+        </div>
+
+        <div class="analysis-section" id="analysisSection">
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats will be populated here -->
+            </div>
+
+            <div class="results-section">
+                <h2 class="section-title">🔍 Security Analysis Results</h2>
+                <div id="vulnerabilities">
+                    <!-- Vulnerabilities will be populated here -->
+                </div>
+            </div>
+
+            <div class="export-section">
+                <button class="btn btn-secondary" onclick="exportReport()">
+                    📄 Export Security Report
+                </button>
+                <button class="btn" onclick="resetAnalysis()">
+                    🔄 Analyze New Files
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let analysisData = {
+            totalEvents: 0,
+            criticalVulns: 0,
+            highVulns: 0,
+            mediumVulns: 0,
+            lowVulns: 0,
+            vulnerabilities: []
+        };
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.name.endsWith('.csv'));
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        }
+
+        async function processFiles(files) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('analysisSection').style.display = 'none';
+            
+            // Reset analysis data
+            analysisData = {
+                totalEvents: 0,
+                criticalVulns: 0,
+                highVulns: 0,
+                mediumVulns: 0,
+                lowVulns: 0,
+                vulnerabilities: []
+            };
+
+            for (const file of files) {
+                await analyzeFile(file);
+            }
+
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                displayResults();
+            }, 1500);
+        }
+
+        function analyzeFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const csv = e.target.result;
+                    const events = parseCSV(csv);
+                    analyzeEvents(events);
+                    resolve();
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const events = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                    const event = {};
+                    headers.forEach((header, index) => {
+                        event[header] = values[index] || '';
+                    });
+                    events.push(event);
+                }
+            }
+
+            return events;
+        }
+
+        function analyzeEvents(events) {
+            analysisData.totalEvents += events.length;
+
+            // Group events by type for analysis
+            const eventGroups = {};
+            events.forEach(event => {
+                const eventId = event['Event ID'] || event['EventID'] || '';
+                if (!eventGroups[eventId]) {
+                    eventGroups[eventId] = [];
+                }
+                eventGroups[eventId].push(event);
+            });
+
+            // Analyze different types of security events
+            analyzeFailedLogins(eventGroups['4625'] || []);
+            analyzeSuccessfulLogins(eventGroups['4624'] || []);
+            analyzeAccountLockouts(eventGroups['4740'] || []);
+            analyzePrivilegeEscalation(eventGroups['4672'] || []);
+            analyzeServiceInstallations(eventGroups['7045'] || []);
+            analyzeProcessCreation(eventGroups['4688'] || []);
+            analyzeLogonFailures(eventGroups['4771'] || []);
+            analyzePasswordChanges(eventGroups['4724'] || []);
+        }
+
+        function analyzeFailedLogins(events) {
+            if (events.length === 0) return;
+
+            const ipCounts = {};
+            const userCounts = {};
+
+            events.forEach(event => {
+                const ip = extractIP(event);
+                const user = extractUsername(event);
+                
+                if (ip) ipCounts[ip] = (ipCounts[ip] || 0) + 1;
+                if (user) userCounts[user] = (userCounts[user] || 0) + 1;
+            });
+
+            // Check for brute force attacks
+            Object.entries(ipCounts).forEach(([ip, count]) => {
+                if (count >= 10) {
+                    addVulnerability({
+                        title: `Potential Brute Force Attack from ${ip}`,
+                        severity: count >= 50 ? 'critical' : count >= 20 ? 'high' : 'medium',
+                        description: `${count} failed login attempts detected from IP address ${ip}. This may indicate a brute force attack.`,
+                        remediation: `Block IP address ${ip} at firewall level. Review account security policies and consider implementing account lockout policies.`,
+                        eventCount: count
+                    });
+                }
+            });
+
+            Object.entries(userCounts).forEach(([user, count]) => {
+                if (count >= 15) {
+                    addVulnerability({
+                        title: `Multiple Failed Logins for User: ${user}`,
+                        severity: count >= 30 ? 'high' : 'medium',
+                        description: `${count} failed login attempts for user ${user}. Account may be under attack.`,
+                        remediation: `Reset password for user ${user}. Enable MFA if not already enabled. Review account activity.`,
+                        eventCount: count
+                    });
+                }
+            });
+        }
+
+        function analyzeSuccessfulLogins(events) {
+            if (events.length === 0) return;
+
+            const unusualHours = events.filter(event => {
+                const time = extractTime(event);
+                if (time) {
+                    const hour = new Date(time).getHours();
+                    return hour < 6 || hour > 22; // Outside normal business hours
+                }
+                return false;
+            });
+
+            if (unusualHours.length >= 5) {
+                addVulnerability({
+                    title: 'Unusual Login Hours Detected',
+                    severity: 'medium',
+                    description: `${unusualHours.length} successful logins detected outside normal business hours (10 PM - 6 AM).`,
+                    remediation: 'Review login times and verify legitimate access. Consider implementing time-based access controls.',
+                    eventCount: unusualHours.length
+                });
+            }
+        }
+
+        function analyzeAccountLockouts(events) {
+            if (events.length >= 5) {
+                addVulnerability({
+                    title: 'Multiple Account Lockouts',
+                    severity: 'high',
+                    description: `${events.length} account lockout events detected. This may indicate password attacks or policy issues.`,
+                    remediation: 'Review account lockout policies. Investigate affected accounts for compromise. Consider implementing progressive lockout delays.',
+                    eventCount: events.length
+                });
+            }
+        }
+
+        function analyzePrivilegeEscalation(events) {
+            if (events.length >= 3) {
+                addVulnerability({
+                    title: 'Privilege Escalation Events',
+                    severity: 'critical',
+                    description: `${events.length} privilege escalation events detected. Administrative privileges were assigned.`,
+                    remediation: 'Review all privilege assignments. Ensure principle of least privilege. Audit administrative accounts.',
+                    eventCount: events.length
+                });
+            }
+        }
+
+        function analyzeServiceInstallations(events) {
+            if (events.length >= 1) {
+                addVulnerability({
+                    title: 'Service Installation Detected',
+                    severity: 'medium',
+                    description: `${events.length} new service installation(s) detected. Verify these are legitimate.`,
+                    remediation: 'Review installed services. Remove unauthorized services. Implement service installation monitoring.',
+                    eventCount: events.length
+                });
+            }
+        }
+
+        function analyzeProcessCreation(events) {
+            const suspiciousProcesses = events.filter(event => {
+                const process = (event['Process Name'] || event['ProcessName'] || '').toLowerCase();
+                return process.includes('powershell') || process.includes('cmd') || process.includes('wscript') || process.includes('cscript');
+            });
+
+            if (suspiciousProcesses.length >= 10) {
+                addVulnerability({
+                    title: 'Suspicious Process Activity',
+                    severity: 'high',
+                    description: `${suspiciousProcesses.length} potentially suspicious process executions detected (PowerShell, CMD, scripts).`,
+                    remediation: 'Review process execution logs. Implement application whitelisting. Monitor script execution.',
+                    eventCount: suspiciousProcesses.length
+                });
+            }
+        }
+
+        function analyzeLogonFailures(events) {
+            if (events.length >= 20) {
+                addVulnerability({
+                    title: 'Kerberos Authentication Failures',
+                    severity: 'medium',
+                    description: `${events.length} Kerberos authentication failures detected. May indicate network issues or attacks.`,
+                    remediation: 'Check domain controller health. Review Kerberos configuration. Investigate potential replay attacks.',
+                    eventCount: events.length
+                });
+            }
+        }
+
+        function analyzePasswordChanges(events) {
+            if (events.length >= 10) {
+                addVulnerability({
+                    title: 'Multiple Password Changes',
+                    severity: 'low',
+                    description: `${events.length} password change events detected. Monitor for unusual patterns.`,
+                    remediation: 'Review password change patterns. Ensure strong password policies are enforced.',
+                    eventCount: events.length
+                });
+            }
+        }
+
+        function addVulnerability(vuln) {
+            analysisData.vulnerabilities.push(vuln);
+            switch(vuln.severity) {
+                case 'critical': analysisData.criticalVulns++; break;
+                case 'high': analysisData.highVulns++; break;
+                case 'medium': analysisData.mediumVulns++; break;
+                case 'low': analysisData.lowVulns++; break;
+            }
+        }
+
+        function extractIP(event) {
+            const text = JSON.stringify(event).toLowerCase();
+            const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
+            const matches = text.match(ipRegex);
+            return matches ? matches[0] : null;
+        }
+
+        function extractUsername(event) {
+            return event['Account Name'] || event['User'] || event['Username'] || event['TargetUserName'] || '';
+        }
+
+        function extractTime(event) {
+            return event['Date and Time'] || event['TimeCreated'] || event['Timestamp'] || '';
+        }
+
+        function displayResults() {
+            // Update stats
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${analysisData.totalEvents.toLocaleString()}</div>
+                    <div class="stat-label">Total Events Analyzed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number critical">${analysisData.criticalVulns}</div>
+                    <div class="stat-label">Critical Issues</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number high">${analysisData.highVulns}</div>
+                    <div class="stat-label">High Priority</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number medium">${analysisData.mediumVulns}</div>
+                    <div class="stat-label">Medium Priority</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number low">${analysisData.lowVulns}</div>
+                    <div class="stat-label">Low Priority</div>
+                </div>
+            `;
+
+            // Display vulnerabilities
+            const vulnerabilitiesDiv = document.getElementById('vulnerabilities');
+            if (analysisData.vulnerabilities.length === 0) {
+                vulnerabilitiesDiv.innerHTML = `
+                    <div class="vulnerability-item">
+                        <div class="vulnerability-title">✅ No Critical Security Issues Detected</div>
+                        <div class="vulnerability-description">
+                            Your log analysis completed successfully. No immediate security threats were identified in the analyzed events.
+                        </div>
+                    </div>
+                `;
+            } else {
+                vulnerabilitiesDiv.innerHTML = analysisData.vulnerabilities
+                    .sort((a, b) => {
+                        const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+                        return severityOrder[b.severity] - severityOrder[a.severity];
+                    })
+                    .map(vuln => `
+                        <div class="vulnerability-item">
+                            <div class="vulnerability-header">
+                                <div>
+                                    <div class="vulnerability-title">${vuln.title}</div>
+                                    <span class="severity-badge severity-${vuln.severity}">${vuln.severity}</span>
+                                </div>
+                            </div>
+                            <div class="vulnerability-description">${vuln.description}</div>
+                            <div class="remediation">
+                                <div class="remediation-title">🛠️ Recommended Action:</div>
+                                <div>${vuln.remediation}</div>
+                            </div>
+                        </div>
+                    `).join('');
+            }
+
+            document.getElementById('analysisSection').style.display = 'block';
+        }
+
+        function exportReport() {
+            const reportContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Windows Security Analysis Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 40px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+                        .stat { text-align: center; }
+                        .vulnerability { margin: 20px 0; padding: 15px; border-left: 4px solid #8b5cf6; background: #f9f9f9; }
+                        .critical { border-left-color: #ef4444; }
+                        .high { border-left-color: #f97316; }
+                        .medium { border-left-color: #f59e0b; }
+                        .low { border-left-color: #10b981; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Windows Security Analysis Report</h1>
+                        <p>Generated on ${new Date().toLocaleString()}</p>
+                    </div>
+                    <div class="stats">
+                        <div class="stat"><h3>${analysisData.totalEvents}</h3><p>Total Events</p></div>
+                        <div class="stat"><h3>${analysisData.criticalVulns}</h3><p>Critical</p></div>
+                        <div class="stat"><h3>${analysisData.highVulns}</h3><p>High</p></div>
+                        <div class="stat"><h3>${analysisData.mediumVulns}</h3><p>Medium</p></div>
+                        <div class="stat"><h3>${analysisData.lowVulns}</h3><p>Low</p></div>
+                    </div>
+                    <h2>Security Issues Found</h2>
+                    ${analysisData.vulnerabilities.map(vuln => `
+                        <div class="vulnerability ${vuln.severity}">
+                            <h3>${vuln.title} (${vuln.severity.toUpperCase()})</h3>
+                            <p><strong>Description:</strong> ${vuln.description}</p>
+                            <p><strong>Remediation:</strong> ${vuln.remediation}</p>
+                        </div>
+                    `).join('')}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([reportContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `security-analysis-report-${new Date().toISOString().split('T')[0]}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetAnalysis() {
+            document.getElementById('analysisSection').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            analysisData = {
+                totalEvents: 0,
+                criticalVulns: 0,
+                highVulns: 0,
+                mediumVulns: 0,
+                lowVulns: 0,
+                vulnerabilities: []
+            };
+        }
+    </script>
+</body>
+</html>
